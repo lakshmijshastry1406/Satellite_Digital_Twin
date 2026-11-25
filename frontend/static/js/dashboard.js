@@ -48,10 +48,12 @@ setInterval(updateClock, 1000);
 // 3. CESIUM INITIALIZATION
 // ------------------------------------------
 
+
 const viewer = new Cesium.Viewer("cesiumContainer", {
     animation: false,
     timeline: false,
     baseLayerPicker: false,
+    baseLayer: false,
     geocoder: false,
     homeButton: true,
     sceneModePicker: false,
@@ -60,6 +62,7 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
     infoBox: false,
     selectionIndicator: false
 });
+
 
 
 // ------------------------------------------
@@ -228,17 +231,21 @@ let cloudLayer = null;
 let cloudShift = 0;
 
 const CLOUD_ALPHA = 0.90;
-const CLOUD_UPDATE_INTERVAL = 30000;
-const CLOUD_CROSSFADE_DURATION = 5000;
+const CLOUD_UPDATE_INTERVAL = 5000;
+const CLOUD_CROSSFADE_DURATION = 3000;
 
-function createCloudLayer(canvas) {
+
+async function createCloudLayer(canvas) {
 
     const imageUrl = canvas.toDataURL("image/png");
 
-    const provider = new Cesium.SingleTileImageryProvider({
-        url: imageUrl,
-        rectangle: Cesium.Rectangle.MAX_VALUE
-    });
+    const provider =
+        await Cesium.SingleTileImageryProvider.fromUrl(
+            imageUrl,
+            {
+                rectangle: Cesium.Rectangle.MAX_VALUE
+            }
+        );
 
     const layer = viewer.imageryLayers.addImageryProvider(
         provider
@@ -250,6 +257,7 @@ function createCloudLayer(canvas) {
 
     return { layer, provider };
 }
+
 
 function crossfadeCloudLayers(oldLayer, newLayer) {
 
@@ -283,58 +291,78 @@ function crossfadeCloudLayers(oldLayer, newLayer) {
     requestAnimationFrame(animate);
 }
 
-// Create initial cloud layer.
-const initialCloud = createCloudLayer(cloudCanvas);
 
-cloudLayer = initialCloud.layer;
+// ==========================================
+// CLOUD ANIMATION INITIALIZATION
+// ==========================================
 
-initialCloud.layer.alpha = CLOUD_ALPHA;
-
-console.info("Earth cloud layer initialized");
-
-// Slowly drift the cloud texture.
 let cloudAnimationBusy = false;
+// Create initial cloud layer.
 
-setInterval(() => {
+async function initializeCloudAnimation() {
 
-    if (cloudAnimationBusy) return;
+    try {
 
-    cloudAnimationBusy = true;
+        const initialCloud = await createCloudLayer(cloudCanvas);
 
-    // One-pixel horizontal texture shift per update.
-    cloudShift += 1;
+        cloudLayer = initialCloud.layer;
+        cloudLayer.alpha = CLOUD_ALPHA;
 
-    const shiftedCanvas = createShiftedCloudTexture(
-        cloudCanvas,
-        cloudShift
-    );
+        console.info("Earth cloud layer initialized");
 
-    const nextCloud = createCloudLayer(shiftedCanvas);
+        setInterval(async () => {
 
-    nextCloud.provider.readyPromise.then(() => {
+            if (cloudAnimationBusy) return;
 
-        const previousLayer = cloudLayer;
+            cloudAnimationBusy = true;
 
-        crossfadeCloudLayers(
-            previousLayer,
-            nextCloud.layer
-        );
+            let nextCloud = null;
 
-        setTimeout(() => {
-            cloudAnimationBusy = false;
-        }, CLOUD_CROSSFADE_DURATION);
+            try {
 
-    }).catch((error) => {
+                cloudShift += 1;
 
-        viewer.imageryLayers.remove(nextCloud.layer);
+                const shiftedCanvas = createShiftedCloudTexture(
+                    cloudCanvas,
+                    cloudShift
+                );
 
-        cloudAnimationBusy = false;
+                nextCloud = await createCloudLayer(
+                    shiftedCanvas
+                );
 
-        console.error("Cloud update failed:", error);
+                crossfadeCloudLayers(
+                    cloudLayer,
+                    nextCloud.layer
+                );
 
-    });
+                setTimeout(() => {
+                    cloudAnimationBusy = false;
+                }, CLOUD_CROSSFADE_DURATION);
 
-}, CLOUD_UPDATE_INTERVAL);
+                console.info("Cloud texture updated:", cloudShift);
+
+            } catch (error) {
+
+                if (nextCloud) {
+                    viewer.imageryLayers.remove(nextCloud.layer);
+                }
+
+                cloudAnimationBusy = false;
+
+                console.error("Cloud update failed:", error);
+            }
+
+        }, CLOUD_UPDATE_INTERVAL);
+
+    } catch (error) {
+
+        console.error("Cloud initialization failed:", error);
+    }
+}
+
+initializeCloudAnimation();
+
 
 
 // ------------------------------------------
