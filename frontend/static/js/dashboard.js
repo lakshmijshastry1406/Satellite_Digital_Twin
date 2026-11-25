@@ -99,8 +99,8 @@ earthLayer.gamma = 0.95;
 
 function createCloudTexture() {
 
-    const width = 1024;
-    const height = 512;
+    const width = 2048;
+    const height = 1024;
 
     const canvas = document.createElement("canvas");
 
@@ -160,21 +160,23 @@ function createCloudTexture() {
 
             let cloud = 0;
 
-            cloud += noise(u, v, 8, 4, 1) * 0.45;
-            cloud += noise(u, v, 16, 8, 2) * 0.30;
-            cloud += noise(u, v, 32, 16, 3) * 0.17;
-            cloud += noise(u, v, 64, 32, 4) * 0.08;
+            cloud += noise(u, v, 12, 6, 1) * 0.30;
+            cloud += noise(u, v, 24, 12, 2) * 0.25;
+            cloud += noise(u, v, 48, 24, 3) * 0.20;
+            cloud += noise(u, v, 96, 48, 4) * 0.13;
+            cloud += noise(u, v, 192, 96, 5) * 0.08;
+            cloud += noise(u, v, 384, 192, 6) * 0.04;
 
             // Smooth cloud edges.
             let alpha = Math.max(
                 0,
                 Math.min(
                     1,
-                    (cloud - 0.48) / 0.14
+                    (cloud - 0.50) / 0.18
                 )
             );
 
-            alpha = Math.pow(alpha, 1.5) * 0.95;
+            alpha = Math.pow(alpha, 1.3) * 0.85;
 
             const index = (y * width + x) * 4;
 
@@ -230,7 +232,7 @@ const cloudCanvas = createCloudTexture();
 let cloudLayer = null;
 let cloudShift = 0;
 
-const CLOUD_ALPHA = 0.90;
+const CLOUD_ALPHA = 0.65;
 const CLOUD_UPDATE_INTERVAL = 5000;
 const CLOUD_CROSSFADE_DURATION = 3000;
 
@@ -320,7 +322,7 @@ async function initializeCloudAnimation() {
 
             try {
 
-                cloudShift += 1;
+                cloudShift += 2;
 
                 const shiftedCanvas = createShiftedCloudTexture(
                     cloudCanvas,
@@ -380,13 +382,13 @@ viewer.scene.globe.baseColor =
 // Enable blue atmospheric scattering.
 viewer.scene.skyAtmosphere.show = true;
 
-viewer.scene.skyAtmosphere.atmosphereLightIntensity = 12.0;
+viewer.scene.skyAtmosphere.atmosphereLightIntensity = 10.0;
 
-viewer.scene.skyAtmosphere.hueShift = -0.04;
+viewer.scene.skyAtmosphere.hueShift = 0.0;
 
-viewer.scene.skyAtmosphere.saturationShift = 0.15;
+viewer.scene.skyAtmosphere.saturationShift = 0.05;
 
-viewer.scene.skyAtmosphere.brightnessShift = 0.08;
+viewer.scene.skyAtmosphere.brightnessShift = -0.05;
 
 // Deep-space background.
 viewer.scene.backgroundColor =
@@ -394,6 +396,11 @@ viewer.scene.backgroundColor =
 
 // Improve surface detail.
 viewer.scene.globe.maximumScreenSpaceError = 1.5;
+// Clean cinematic space background.
+viewer.scene.skyBox.show = false;
+
+viewer.scene.backgroundColor =
+    Cesium.Color.fromCssColorString("#03070D");
 
 console.info("Earth atmosphere initialized");
 
@@ -930,7 +937,7 @@ function toggleISSFollow(enabled) {
                 Cesium.Cartesian3.fromDegrees(
                     0,
                     15,
-                    28000000
+                    20000000
                 ),
 
             duration: 2
@@ -973,11 +980,12 @@ console.info("3D ISS schematic initialized");
 
 
 
+
 viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(
         0,
         15,
-        28000000
+        32000000
     ),
     orientation: {
         heading: 0,
@@ -986,6 +994,94 @@ viewer.camera.flyTo({
     },
     duration: 3
 });
+// ------------------------------------------
+// 9A. INTERACTIVE CAMERA CONTROLS
+// ------------------------------------------
+
+const cameraController =
+    viewer.scene.screenSpaceCameraController;
+
+cameraController.enableZoom = true;
+cameraController.enableRotate = true;
+cameraController.enableTilt = true;
+
+cameraController.minimumZoomDistance = 1000000;
+cameraController.maximumZoomDistance = 60000000;
+
+const cameraControls = document.createElement("div");
+
+cameraControls.className = "camera-controls";
+
+cameraControls.innerHTML = `
+    <div class="camera-controls-label">VIEW</div>
+
+    <button id="zoom-in" title="Zoom in">+</button>
+
+    <button id="zoom-out" title="Zoom out">−</button>
+
+    <button id="reset-view" title="Reset view">↻</button>
+`;
+
+document.body.appendChild(cameraControls);
+
+function zoomCamera(direction) {
+
+    const height =
+        viewer.camera.positionCartographic.height;
+
+    const amount = height * 0.15;
+
+    if (direction === "in") {
+
+        viewer.camera.zoomIn(
+            Math.max(0, Math.min(
+                amount, height - 1000000
+            ))
+        );
+
+    } else {
+
+        viewer.camera.zoomOut(
+            Math.max(0, Math.min(
+                amount, 60000000 - height
+            ))
+        );
+
+    }
+}
+
+document.getElementById("zoom-in")
+    .addEventListener("click", () => {
+        zoomCamera("in");
+    });
+
+document.getElementById("zoom-out")
+    .addEventListener("click", () => {
+        zoomCamera("out");
+    });
+
+document.getElementById("reset-view")
+    .addEventListener("click", () => {
+
+        viewer.camera.flyTo({
+            destination:
+                Cesium.Cartesian3.fromDegrees(
+                    0, 15, 20000000
+                ),
+
+            orientation: {
+                heading: 0,
+                pitch: Cesium.Math.toRadians(-90),
+                roll: 0
+            },
+
+            duration: 1.5
+        });
+
+    });
+
+console.info("Camera controls initialized");
+
 
 
 
