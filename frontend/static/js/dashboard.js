@@ -12,6 +12,90 @@
 const $ = (id) => document.getElementById(id);
 
 // ------------------------------------------
+// BACKEND API CONNECTION
+// ------------------------------------------
+
+const STATUS_API = "/api/v1/status";
+const STATUS_REFRESH_MS = 5000;
+const STATUS_TIMEOUT_MS = 3000;
+
+function setBackendStatus(state, label) {
+    const container = $("backend-status");
+    const statusLabel = $("backend-status-label");
+
+    if (!container || !statusLabel) {
+        return;
+    }
+
+    container.dataset.state = state;
+    container.title = label;
+    statusLabel.textContent = label;
+}
+
+async function checkBackendStatus() {
+    const controller = new AbortController();
+
+    const timeout = setTimeout(
+        () => controller.abort(),
+        STATUS_TIMEOUT_MS
+    );
+
+    try {
+        const response = await fetch(STATUS_API, {
+            method: "GET",
+            cache: "no-store",
+            signal: controller.signal
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (
+            data.service !== "ORBITAL" ||
+            data.status !== "operational"
+        ) {
+            throw new Error("Unexpected API status");
+        }
+
+        setBackendStatus(
+            "online",
+            "BACKEND ONLINE"
+        );
+
+    } catch (error) {
+        setBackendStatus(
+            "offline",
+            "BACKEND OFFLINE"
+        );
+
+        console.warn(
+            "Backend connection unavailable:",
+            error.message
+        );
+
+    } finally {
+        clearTimeout(timeout);
+
+        setTimeout(
+            checkBackendStatus,
+            STATUS_REFRESH_MS
+        );
+    }
+}
+
+setBackendStatus("connecting", "CONNECTING");
+
+checkBackendStatus();
+
+
+// ------------------------------------------
+// END BACKEND API CONNECTION
+// ------------------------------------------
+
+// ------------------------------------------
 // 1. SIMULATION PARAMETERS
 // ------------------------------------------
 

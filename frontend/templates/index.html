@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/css/style.css?v=2">
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
 
     <link rel="stylesheet"
           href="https://cesium.com/downloads/cesiumjs/releases/1.126/Build/Cesium/Widgets/widgets.css">
@@ -38,9 +38,11 @@
             <span class="mono">NORAD 25544</span>
         </div>
 
-        <div class="system-status">
+        <div class="system-status" id="backend-status"
+            data-state="connecting">
             <span class="status-indicator"></span>
-            <span class="status-label">SIMULATION RUNNING</span>
+            <span class="status-label" id="backend-status-label"
+            role="status">CONNECTING</span>
             <strong id="utc-clock">00:00:00 UTC</strong>
         </div>
     </header>
@@ -211,6 +213,6 @@
     </main>
 </div>
 
-<script src="/static/js/dashboard.js"></script>
+<script src="/static/js/dashboard.js?v=3"></script>
 </body>
 </html>

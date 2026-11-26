@@ -295,3 +295,51 @@ body {
         right: 16px;
     }
 }
+
+/* ==========================================
+   BACKEND CONNECTION STATUS
+========================================== */
+
+#backend-status[data-state="online"] .status-indicator {
+    background: #5be0ad;
+    box-shadow: 0 0 10px rgba(91, 224, 173, 0.65);
+}
+
+#backend-status[data-state="online"] .status-label {
+    color: #5be0ad;
+}
+
+#backend-status[data-state="connecting"] .status-indicator {
+    background: #eab308;
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.5);
+    animation: connection-pulse 1.5s infinite;
+}
+
+#backend-status[data-state="connecting"] .status-label {
+    color: #eab308;
+}
+
+#backend-status[data-state="offline"] .status-indicator {
+    background: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+#backend-status[data-state="offline"] .status-label {
+    color: #ef4444;
+}
+
+@keyframes connection-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #backend-status .status-indicator {
+        animation: none;
+    }
+}

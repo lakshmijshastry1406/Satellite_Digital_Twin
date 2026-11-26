@@ -1,8 +1,12 @@
-﻿from pathlib import Path
+﻿
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+from app.api.status import router as status_router
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
@@ -13,6 +17,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.include_router(status_router)
+
 app.mount(
     "/static",
     StaticFiles(directory=FRONTEND_DIR / "static"),
@@ -22,7 +28,9 @@ app.mount(
 
 @app.get("/")
 async def dashboard():
-    return FileResponse(FRONTEND_DIR / "templates" / "index.html")
+    return FileResponse(
+        FRONTEND_DIR / "templates" / "index.html"
+    )
 
 
 @app.get("/health")
